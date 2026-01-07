@@ -1,0 +1,68 @@
+import random
+from collections import defaultdict
+
+# Environment settings
+GRID_SIZE = 5
+START = (0, 0)
+GOAL = (4, 4)
+ACTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+
+# Reward function
+def get_reward(state):
+    if state == GOAL:
+        return 100
+    return -1  # fuel cost
+
+# Move drone
+def step(state, action):
+    x, y = state
+    if action == 'UP':
+        x = max(x - 1, 0)
+    elif action == 'DOWN':
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == 'LEFT':
+        y = max(y - 1, 0)
+    elif action == 'RIGHT':
+        y = min(y + 1, GRID_SIZE - 1)
+    return (x, y)
+
+# Monte Carlo Control
+Q = defaultdict(lambda: {a: 0 for a in ACTIONS})
+returns = defaultdict(list)
+epsilon = 0.1
+episodes = 500
+
+for _ in range(episodes):
+    episode = []
+    state = START
+
+    # Generate episode
+    while state != GOAL:
+        if random.random() < epsilon:
+            action = random.choice(ACTIONS)
+        else:
+            action = max(Q[state], key=Q[state].get)
+
+        next_state = step(state, action)
+        reward = get_reward(next_state)
+        episode.append((state, action, reward))
+        state = next_state
+
+    # Calculate returns
+    G = 0
+    visited = set()
+    for state, action, reward in reversed(episode):
+        G += reward
+        if (state, action) not in visited:
+            returns[(state, action)].append(G)
+            Q[state][action] = sum(returns[(state, action)]) / len(returns[(state, action)])
+            visited.add((state, action))
+
+# Display learned policy
+print("Optimal Policy:")
+for i in range(GRID_SIZE):
+    for j in range(GRID_SIZE):
+        state = (i, j)
+        best_action = max(Q[state], key=Q[state].get)
+        print(best_action.ljust(6), end=" ")
+    print()
