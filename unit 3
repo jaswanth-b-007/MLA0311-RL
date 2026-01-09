@@ -1,0 +1,87 @@
+import numpy as np
+
+# -----------------------------
+# Environment Definition
+# -----------------------------
+states = ["RED", "YELLOW", "GREEN"]
+actions = ["STOP", "GO"]
+
+num_states = len(states)
+num_actions = len(actions)
+
+# -----------------------------
+# Actor–Critic Initialization
+# -----------------------------
+actor = np.zeros((num_states, num_actions))   # policy preferences
+critic = np.zeros(num_states)                 # state values
+
+alpha = 0.1    # learning rate
+gamma = 0.9    # discount factor
+
+# -----------------------------
+# Helper Functions
+# -----------------------------
+def softmax(x):
+    exp_x = np.exp(x - np.max(x))
+    return exp_x / np.sum(exp_x)
+
+def choose_action(state):
+    probs = softmax(actor[state])
+    return np.random.choice(num_actions, p=probs)
+
+# -----------------------------
+# Training Loop
+# -----------------------------
+episodes = 500
+
+for episode in range(episodes):
+    state = np.random.choice(num_states)
+    done = False
+    total_reward = 0
+
+    while not done:
+        action = choose_action(state)
+
+        # Environment rules
+        if states[state] == "GREEN" and action == 1:
+            reward = 5          # safe crossing
+            done = True
+            next_state = state
+
+        elif states[state] != "GREEN" and action == 1:
+            reward = -10        # collision
+            done = True
+            next_state = state
+
+        else:
+            reward = -1         # waiting penalty
+            next_state = np.random.choice(num_states)
+
+        # TD Error (Advantage)
+        td_error = reward + gamma * critic[next_state] - critic[state]
+
+        # Update Critic
+        critic[state] += alpha * td_error
+
+        # Update Actor
+        actor[state][action] += alpha * td_error
+
+        state = next_state
+        total_reward += reward
+
+# -----------------------------
+# OUTPUT SECTION
+# -----------------------------
+print("===== LEARNED POLICY =====")
+for i, state in enumerate(states):
+    probs = softmax(actor[i])
+    best_action = actions[np.argmax(probs)]
+    print(f"State: {state}")
+    print(f"  STOP Probability: {probs[0]:.2f}")
+    print(f"  GO   Probability: {probs[1]:.2f}")
+    print(f"  Best Action: {best_action}")
+    print()
+
+print("===== STATE VALUES (CRITIC) =====")
+for i, state in enumerate(states):
+    print(f"V({state}) = {critic[i]:.2f}")
