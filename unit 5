@@ -1,0 +1,111 @@
+# HAM-based Multi-Robot Coordination Simulation
+# Fully working in Google Colab
+
+import time
+import matplotlib.pyplot as plt
+import networkx as nx
+
+# -----------------------------
+# Hierarchical Abstract Machine
+# -----------------------------
+class HAM:
+    def __init__(self, name, subtasks=None):
+        self.name = name
+        self.subtasks = subtasks if subtasks else []
+
+    def execute(self, robot_id, timeline):
+        print(f"\nRobot {robot_id} executing: {self.name}")
+        for task in self.subtasks:
+            time.sleep(0.1)  # simulate execution
+            timeline.append(task)
+            print(f"  -> {task}")
+
+# -----------------------------
+# Robot Class
+# -----------------------------
+class Robot:
+    def __init__(self, robot_id):
+        self.robot_id = robot_id
+        self.timeline = []
+
+    def run(self, ham):
+        ham.execute(self.robot_id, self.timeline)
+
+# -----------------------------
+# Define HAM Hierarchy
+# -----------------------------
+explore_ham = HAM(
+    "Explore Area",
+    ["Scan Zone", "Map Obstacles", "Share Map"]
+)
+
+transport_ham = HAM(
+    "Transport Objects",
+    ["Pick Object", "Navigate Path", "Drop Object"]
+)
+
+assemble_ham = HAM(
+    "Assemble Structure",
+    ["Align Parts", "Fasten Parts", "Verify Assembly"]
+)
+
+# -----------------------------
+# Create Robots
+# -----------------------------
+robots = [
+    Robot(1),
+    Robot(2),
+    Robot(3)
+]
+
+# Assign tasks
+robots[0].run(explore_ham)
+robots[1].run(transport_ham)
+robots[2].run(assemble_ham)
+
+# -----------------------------
+# Visualization 1: HAM Hierarchy
+# -----------------------------
+G = nx.DiGraph()
+
+# High-level mission
+G.add_edge("Mission", "Explore Area")
+G.add_edge("Mission", "Transport Objects")
+G.add_edge("Mission", "Assemble Structure")
+
+# Subtasks
+for task in explore_ham.subtasks:
+    G.add_edge("Explore Area", task)
+
+for task in transport_ham.subtasks:
+    G.add_edge("Transport Objects", task)
+
+for task in assemble_ham.subtasks:
+    G.add_edge("Assemble Structure", task)
+
+plt.figure(figsize=(12, 8))
+pos = nx.spring_layout(G, seed=42)
+nx.draw(G, pos,
+        with_labels=True,
+        node_color="lightblue",
+        node_size=2500,
+        font_size=9,
+        arrows=True)
+plt.title("Hierarchical Abstract Machine (HAM) Task Decomposition")
+plt.show()
+
+# -----------------------------
+# Visualization 2: Robot Execution Timeline
+# -----------------------------
+plt.figure(figsize=(10, 4))
+
+for i, robot in enumerate(robots):
+    for j, task in enumerate(robot.timeline):
+        plt.barh(i, 1, left=j)
+        plt.text(j + 0.05, i, task, fontsize=8)
+
+plt.yticks(range(len(robots)), [f"Robot {r.robot_id}" for r in robots])
+plt.xlabel("Execution Step")
+plt.ylabel("Robot")
+plt.title("Multi-Robot Task Coordination Timeline")
+plt.show()
